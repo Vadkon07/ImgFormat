@@ -8,6 +8,9 @@ from PyQt6.QtGui import QAction, QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
+    QGridLayout,
+    QDialog,
+    QTextBrowser,
     QMainWindow,
     QToolBar,
     QLabel,
@@ -22,7 +25,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-app_version = '0.2.0'
+app_version = '0.3.0'
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -36,6 +39,12 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
 
+        self.logo = QLabel()
+        pixmap = QPixmap("Logo.png")
+        self.logo.setPixmap(pixmap)
+        self.logo.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.layout.addWidget(self.logo)
+
         self.widgetF = QLabel("Please, choose a file to convert in 'File' menu")
         widget_font = self.widgetF.font()
         widget_font.setPointSize(16)
@@ -47,12 +56,19 @@ class MainWindow(QMainWindow):
         # Create Menu Bar
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu('File')
+        about_menu = menu_bar.addMenu('About')
 
         # Add actions to the File menu
         open_action = QAction('Open', self)
         open_action.triggered.connect(self.get_image_path)
         file_menu.addAction(open_action)
 
+        # Add actions to the About menu
+        about_action = QAction('About', self)
+        about_action.triggered.connect(self.about_dialog)
+        about_menu.addAction(about_action)
+
+        # Add exit action
         exit_action = QAction('Exit', self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
@@ -60,7 +76,7 @@ class MainWindow(QMainWindow):
         #self.check_updates()
 
         # Create Status Bar
-        self.statusBar().showMessage('Ready')
+        self.statusBar().showMessage('Ready to convert images!')
 
     def get_image_path(self):
         self.path, _ = QFileDialog.getOpenFileName(self, "Choose file to convert", "", "All Files (*);;Image Files (*.png *.jpg *.jpeg *.bmp)")
@@ -68,6 +84,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f'Selected file: {self.path}')
             print(self.path)
             self.widgetF.hide()
+            self.logo.hide()
             self.show_image(self.path)
 
     def show_image(self, path):
@@ -107,7 +124,28 @@ class MainWindow(QMainWindow):
         if scaled_pixmap.width() > self.width() or scaled_pixmap.height() > self.height():
             self.resize(scaled_pixmap.width() + 20, scaled_pixmap.height() + 60)
 
-    def check_updates(self):
+    def about_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("About ImgFormat")
+
+        text_browser = QTextBrowser(dialog)
+        text_browser.setHtml("<h3>Welcome to the ImgFormat!</h3> <p>ImgFormat that's the best app to convert your photos from one format to another fast and free.</p> <h4>Let me explain!</h4> <p>If you want to convert .jpg photo in .png, you load image in ImgFormat, choose output format, and then when you click on convert button our app will convert your photo in another format.</p>")
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.accept)
+
+        support_button = QPushButton("Support developer (PayPal donation)")
+        support_button.clicked.connect(dialog.accept) # Set link instead
+
+        layout = QGridLayout(dialog)
+        layout.addWidget(text_browser)
+        layout.addWidget(close_button)
+        layout.addWidget(support_button)
+
+        dialog.setLayout(layout)
+        dialog.exec()
+
+    def check_updates(self): # Edil url, it's copied from another project
         try:
             url_fetch = 'https://raw.githubusercontent.com/Vadkon07/Splash/refs/heads/master/ver.html'
             current_version = app_version
@@ -128,6 +166,7 @@ class MainWindow(QMainWindow):
 
     def convert_image(self):
         chosen_format = self.input.text()
+        self.statusBar().showMessage(f'Conversion to {chosen_format}...')
         QMessageBox.information(self, "Conversion Started", f"Conversion to {chosen_format} started...")
 
         output_path = os.path.splitext(self.path)[0] + f'.{chosen_format}'
@@ -139,6 +178,7 @@ class MainWindow(QMainWindow):
                 .run()
             )
             QMessageBox.information(self, "Conversion Completed", f"Conversion to {chosen_format} completed: {output_path}")
+            self.statusBar().showMessage('Conversion Completed! You can find your file here: {output_path}')
         except Exception as e:
             QMessageBox.critical(self, "Conversion Error", f"An error occurred: {e}")
 
